@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production build directories
+client/dist/
+dist/
+
+# Environment variables & credentials
+.env
+server/.env
+firebase-service-account.json
+server/firebase-service-account.json
+
+# Local databases
+*.db
+server/inventory.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE configuration files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
