@@ -31,7 +31,33 @@ export default function ProfilePage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatar(reader.result);
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 256;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.7);
+          setAvatar(compressed);
+        };
       };
       reader.readAsDataURL(file);
     }
@@ -52,8 +78,12 @@ export default function ProfilePage() {
         updateUser({ ...user, ...formData, avatar });
       }
       showToast(t('profileSaved'));
-    } catch {
-      showToast('Profile saved locally');
+    } catch (err) {
+      console.error('Failed to save profile to server:', err);
+      // Fallback: save to local storage so it persists on refresh
+      updateUser({ ...user, ...formData, avatar });
+      const currentLang = localStorage.getItem('language') || 'en';
+      showToast(currentLang === 'th' ? 'บันทึกข้อมูลส่วนตัวในเครื่องแล้ว' : 'Profile saved locally');
     }
     setLoading(false);
   };
@@ -158,18 +188,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {toast && <div className="toast toast-success" style={{
-        position: 'fixed',
-        bottom: 24,
-        right: 24,
-        background: 'var(--primary-600)',
-        color: 'white',
-        padding: '12px 24px',
-        borderRadius: 'var(--radius)',
-        boxShadow: 'var(--shadow-lg)',
-        zIndex: 1000,
-        fontWeight: '600'
-      }}>✓ {toast}</div>}
+      {toast && <div className="toast toast-success">✓ {toast}</div>}
     </div>
   );
 }

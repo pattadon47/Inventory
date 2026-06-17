@@ -197,18 +197,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {toast && <div className="toast toast-success" style={{
-        position: 'fixed',
-        bottom: 24,
-        right: 24,
-        background: 'var(--primary-600)',
-        color: 'white',
-        padding: '12px 24px',
-        borderRadius: 'var(--radius)',
-        boxShadow: 'var(--shadow-lg)',
-        zIndex: 1000,
-        fontWeight: '600'
-      }}>✓ {toast}</div>}
+      {toast && <div className="toast toast-success">✓ {toast}</div>}
     </div>
   );
 }

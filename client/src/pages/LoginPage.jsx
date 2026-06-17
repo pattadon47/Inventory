@@ -1,16 +1,19 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Package, User, Lock, Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react';
+import { Package, User, Lock, Eye, EyeOff, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [transitioning, setTransitioning] = useState(false);
 
   // Forgot Password States
   const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'success'
@@ -24,11 +27,22 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError('');
+    // Set transitioning flag BEFORE login so the LoginPageWrapper doesn't redirect
+    sessionStorage.setItem('loginTransitioning', 'true');
     const result = await login(username, password);
     if (!result.success) {
       setError(result.message);
+      setLoading(false);
+      sessionStorage.removeItem('loginTransitioning');
+    } else {
+      // Trigger exit transition animation
+      setTransitioning(true);
+      // Navigate after the animation completes
+      setTimeout(() => {
+        sessionStorage.removeItem('loginTransitioning');
+        navigate('/dashboard', { replace: true });
+      }, 1400);
     }
-    setLoading(false);
   };
 
   const handleForgotSubmit = (e) => {
@@ -54,7 +68,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-page">
+    <div className={`login-page ${transitioning ? 'login-transitioning' : ''}`}>
       {/* Floating background shapes */}
       <div className="login-bg-shapes">
         <div className="login-bg-shape" />
@@ -64,7 +78,20 @@ export default function LoginPage() {
         <div className="login-bg-shape" />
       </div>
 
-      <div className="login-card">
+      {/* Transition overlay */}
+      {transitioning && (
+        <div className="login-transition-overlay">
+          <div className="login-transition-circle" />
+          <div className="login-transition-content">
+            <div className="login-transition-check">
+              <CheckCircle size={48} />
+            </div>
+            <p className="login-transition-text">{t('welcomeBack') || 'Welcome back!'}</p>
+          </div>
+        </div>
+      )}
+
+      <div className={`login-card ${transitioning ? 'login-card-exit' : ''}`}>
         <div className="login-logo">
           <div className="login-logo-icon">
             <Package size={32} />

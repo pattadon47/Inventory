@@ -10,6 +10,8 @@ import SalesPage from './pages/SalesPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import LoansPage from './pages/LoansPage';
+
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, isAdmin } = useAuth();
@@ -34,17 +36,31 @@ function ProtectedRoute({ children, adminOnly = false }) {
   return children;
 }
 
+function LoginPageWrapper() {
+  const { user } = useAuth();
+  const isTransitioning = sessionStorage.getItem('loginTransitioning') === 'true';
+
+  // If user is logged in and NOT transitioning, redirect to dashboard
+  if (user && !isTransitioning) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <LoginPage />;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+      <Route path="/login" element={<LoginPageWrapper />} />
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
       <Route path="/inventory" element={<ProtectedRoute><Layout><InventoryPage /></Layout></ProtectedRoute>} />
       <Route path="/purchases" element={<ProtectedRoute><Layout><PurchasesPage /></Layout></ProtectedRoute>} />
       <Route path="/sales" element={<ProtectedRoute><Layout><SalesPage /></Layout></ProtectedRoute>} />
+      <Route path="/loans" element={<ProtectedRoute><Layout><LoansPage /></Layout></ProtectedRoute>} />
+
       <Route path="/users" element={<ProtectedRoute adminOnly><Layout><UsersPage /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />

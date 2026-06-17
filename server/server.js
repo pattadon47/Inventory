@@ -14,6 +14,7 @@ const purchaseRoutes = require('./routes/purchases');
 const salesRoutes = require('./routes/sales');
 const userRoutes = require('./routes/users');
 const profileRoutes = require('./routes/profile');
+const loanRoutes = require('./routes/loans');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,8 +24,8 @@ app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -34,6 +35,7 @@ app.use('/api/purchases', purchaseRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/loans', loanRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

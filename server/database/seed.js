@@ -94,7 +94,6 @@ async function seed() {
       quantity: p[6],
       unit_price: p[7],
       supplier: p[8],
-      location: p[9],
       purchase_date: p[10],
       warranty_expiry: p[11],
       status: p[12],

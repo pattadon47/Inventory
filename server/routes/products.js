@@ -92,12 +92,12 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const quantity = req.body.quantity !== undefined ? parseInt(req.body.quantity) : 0;
     const unit_price = req.body.unit_price !== undefined ? parseFloat(req.body.unit_price) : (req.body.unitPrice !== undefined ? parseFloat(req.body.unitPrice) : 0);
     const supplier = req.body.supplier || null;
-    const location = req.body.location || null;
     const purchase_date = req.body.purchase_date || req.body.purchaseDate || null;
     const warranty_expiry = req.body.warranty_expiry || req.body.warrantyExpiry || null;
     const status = req.body.status || 'In Stock';
     const notes = req.body.notes || null;
     const condition = req.body.condition || 'Normal';
+    const image = req.body.image || null;
 
     if (!item_id || !item_name || !item_type || !item_category) {
       return res.status(400).json({ success: false, message: 'item_id, item_name, item_type, and item_category are required.' });
@@ -119,12 +119,12 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       quantity,
       unit_price,
       supplier,
-      location,
       purchase_date,
       warranty_expiry,
       status,
       notes,
       condition,
+      image,
       created_by: req.user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -168,12 +168,12 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     const quantity = body.quantity;
     const unit_price = body.unit_price !== undefined ? body.unit_price : body.unitPrice;
     const supplier = body.supplier;
-    const location = body.location;
     const purchase_date = body.purchase_date !== undefined ? body.purchase_date : body.purchaseDate;
     const warranty_expiry = body.warranty_expiry !== undefined ? body.warranty_expiry : body.warrantyExpiry;
     const status = body.status;
     const notes = body.notes;
     const condition = body.condition;
+    const image = body.image;
 
     if (item_name !== undefined) updateData.item_name = item_name;
     if (item_type !== undefined) updateData.item_type = item_type;
@@ -183,12 +183,12 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     if (quantity !== undefined) updateData.quantity = parseInt(quantity);
     if (unit_price !== undefined) updateData.unit_price = parseFloat(unit_price);
     if (supplier !== undefined) updateData.supplier = supplier;
-    if (location !== undefined) updateData.location = location;
     if (purchase_date !== undefined) updateData.purchase_date = purchase_date;
     if (warranty_expiry !== undefined) updateData.warranty_expiry = warranty_expiry;
     if (status !== undefined) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
     if (condition !== undefined) updateData.condition = condition;
+    if (image !== undefined) updateData.image = image;
     
     updateData.updated_at = new Date().toISOString();
 

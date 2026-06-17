@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../database/db');
 const { authenticate, authorize } = require('../middleware/auth');
 const { formatUser } = require('../utils/formatter');
@@ -22,6 +23,56 @@ router.get('/', authenticate, authorize('admin'), async (req, res) => {
     });
 
     res.json({ success: true, data: users.map(formatUser) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/users - Create a new user (admin only)
+router.post('/', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { username, password, email, phone, role } = req.body;
+    const full_name = req.body.full_name || req.body.fullName;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+    }
+
+    const usersRef = db.collection('users');
+    const existingSnap = await usersRef.where('username', '==', username).limit(1).get();
+    if (!existingSnap.empty) {
+      return res.status(409).json({ success: false, message: 'Username already exists.' });
+    }
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const docRef = await usersRef.add({
+      username,
+      password: hashedPassword,
+      full_name: full_name || null,
+      email: email || null,
+      phone: phone || null,
+      role: role || 'user',
+      avatar: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+    // Log activity
+    await db.collection('activity_log').add({
+      user_id: req.user.id,
+      username: req.user.username,
+      action: 'CREATE_USER',
+      details: `Created user: ${username}`,
+      created_at: new Date().toISOString()
+    });
+
+    const newUserDoc = await docRef.get();
+    const newUser = { id: newUserDoc.id, ...newUserDoc.data() };
+
+    res.status(201).json({
+      success: true,
+      data: formatUser(newUser)
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

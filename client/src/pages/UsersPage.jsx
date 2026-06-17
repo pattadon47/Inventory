@@ -61,32 +61,31 @@ export default function UsersPage() {
       if (editingUser) {
         const updateData = { ...formData };
         if (!updateData.password) delete updateData.password;
-        await usersAPI.update(editingUser._id, updateData);
+        const res = await usersAPI.update(editingUser._id, updateData);
+        const updatedUser = res.data?.data || res.data;
+        setUsers(prev => prev.map(u => u._id === editingUser._id ? { ...u, ...updatedUser } : u));
+        showToast('User updated successfully');
       } else {
-        await usersAPI.create(formData);
+        const res = await usersAPI.create(formData);
+        const newUser = res.data?.data || res.data;
+        setUsers(prev => [...prev, newUser]);
+        showToast('User created successfully');
       }
-    } catch {
-      // Local for demo
+      setShowModal(false);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to save user');
     }
-
-    if (editingUser) {
-      setUsers(prev => prev.map(u => u._id === editingUser._id ? { ...u, ...formData } : u));
-    } else {
-      setUsers(prev => [...prev, { _id: Date.now().toString(), ...formData, createdAt: new Date().toISOString().split('T')[0] }]);
-    }
-    showToast(editingUser ? 'User updated successfully' : 'User created successfully');
-    setShowModal(false);
   };
 
   const handleDelete = async () => {
     try {
       await usersAPI.delete(editingUser._id);
-    } catch {
-      // Local
+      setUsers(prev => prev.filter(u => u._id !== editingUser._id));
+      showToast('User deleted successfully');
+      setShowDeleteModal(false);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to delete user');
     }
-    setUsers(prev => prev.filter(u => u._id !== editingUser._id));
-    setShowDeleteModal(false);
-    showToast('User deleted successfully');
   };
 
   const showToast = (msg) => {
@@ -174,48 +173,105 @@ export default function UsersPage() {
 
       {/* Add/Edit User Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">{editingUser ? 'Edit User' : 'Add New User'}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '85vh',
+              overflow: 'hidden',
+              background: '#ffffff',
+              borderRadius: '16px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              width: '100%',
+              maxWidth: '520px',
+              margin: '20px',
+              animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '18px 24px',
+                borderBottom: '1px solid var(--gray-200)',
+                background: '#ffffff',
+                flexShrink: 0
+              }}
+            >
+              <h3 
+                style={{
+                  margin: 0,
+                  fontSize: '18px',
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {editingUser ? 'Edit User' : 'Add New User'}
+              </h3>
+              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gray-400)', width: 32, height: 32, borderRadius: '6px' }}><X size={18} /></button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label className="form-label">Username</label>
-                <input className="form-input" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} placeholder="Username" disabled={!!editingUser} style={editingUser ? { background: 'var(--gray-50)' } : {}} />
+            <div 
+              style={{
+                padding: '24px',
+                overflowY: 'auto',
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+            >
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Username</label>
+                <input className="form-input" value={formData.username || ''} onChange={(e) => setFormData({ ...formData, username: e.target.value })} placeholder="Username" disabled={!!editingUser} style={editingUser ? { background: 'var(--gray-50)' } : {}} />
               </div>
               {!editingUser && (
-                <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input className="form-input" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Password" />
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Password</label>
+                  <input className="form-input" type="password" value={formData.password || ''} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Password" />
                 </div>
               )}
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <input className="form-input" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder="Full name" />
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Full Name</label>
+                <input className="form-input" value={formData.fullName || ''} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} placeholder="Full name" />
               </div>
-              <div className="form-group">
-                <label className="form-label">Email</label>
-                <input className="form-input" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Email address" />
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Email</label>
+                <input className="form-input" type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Email address" />
               </div>
-              <div className="form-group">
-                <label className="form-label">Role</label>
-                <select className="form-select" value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Role</label>
+                <select className="form-select" value={formData.role || 'user'} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
               {editingUser && (
-                <div className="form-group">
-                  <label className="form-label">New Password (leave blank to keep current)</label>
-                  <input className="form-input" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="New password" />
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>New Password (leave blank to keep current)</label>
+                  <input className="form-input" type="password" value={formData.password || ''} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="New password" />
                 </div>
               )}
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                padding: '16px 24px',
+                borderTop: '1px solid var(--gray-200)',
+                background: '#f8fafc',
+                flexShrink: 0,
+                borderRadius: '0 0 16px 16px'
+              }}
+            >
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)} style={{ padding: '8px 16px', borderRadius: '8px', fontWeight: 600 }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave} style={{ padding: '8px 20px', borderRadius: '8px', background: 'linear-gradient(135deg, #0d9488 0%, #1e3a8a 100%)', border: 'none', color: '#ffffff', fontWeight: 700 }}>
                 {editingUser ? 'Update User' : 'Create User'}
               </button>
             </div>

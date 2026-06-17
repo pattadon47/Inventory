@@ -88,9 +88,23 @@ export const profileAPI = {
 
 // Dashboard APIs
 export const dashboardAPI = {
-  getStats: () => api.get('/dashboard/stats'),
+  getStats: (from, to) => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    return api.get('/dashboard/stats', { params });
+  },
   getChartData: () => api.get('/dashboard/charts'),
   getRecentActivity: () => api.get('/dashboard/activity'),
+};
+
+// Loans APIs
+export const loansAPI = {
+  getAll: () => api.get('/loans'),
+  request: (productId, quantity) => api.post('/loans/request', { productId, quantity }),
+  return: (id) => api.post(`/loans/${id}/return`),
+  approve: (id) => api.post(`/loans/${id}/approve`),
+  reject: (id) => api.post(`/loans/${id}/reject`),
 };
 
 export default api;

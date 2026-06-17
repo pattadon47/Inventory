@@ -4,10 +4,14 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/dashboard/stats
+// GET /api/dashboard/stats?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/stats', authenticate, async (req, res) => {
   try {
-    // 1. Fetch all products
+    const { from, to } = req.query;
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to + 'T23:59:59.999Z') : null;
+
+    // 1. Fetch all products (not filtered by date — represents current state)
     const productsSnap = await db.collection('products').get();
     const products = productsSnap.docs.map(doc => doc.data());
 
@@ -17,31 +21,34 @@ router.get('/stats', authenticate, async (req, res) => {
 
     // 2. Fetch all purchase orders
     const ordersSnap = await db.collection('purchase_orders').get();
-    const orders = ordersSnap.docs.map(doc => doc.data());
+    const allOrders = ordersSnap.docs.map(doc => doc.data());
+
+    // Filter orders by date range if provided
+    const orders = allOrders.filter(o => {
+      if (!o.order_date) return !fromDate; // include if no date filter
+      const orderDate = new Date(o.order_date);
+      if (fromDate && orderDate < fromDate) return false;
+      if (toDate && orderDate > toDate) return false;
+      return true;
+    });
 
     const totalPurchaseAmount = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
-    // Monthly purchases (last 6 months)
+    // Monthly purchases (within range)
     const monthlyMap = {};
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
     orders.forEach(o => {
       if (!o.order_date) return;
-      const orderDate = new Date(o.order_date);
-      if (orderDate >= sixMonthsAgo) {
-        const monthStr = o.order_date.substring(0, 7); // 'YYYY-MM'
-        if (!monthlyMap[monthStr]) {
-          monthlyMap[monthStr] = { month: monthStr, count: 0, total: 0 };
-        }
-        monthlyMap[monthStr].count += 1;
-        monthlyMap[monthStr].total += (o.total_amount || 0);
+      const monthStr = o.order_date.substring(0, 7); // 'YYYY-MM'
+      if (!monthlyMap[monthStr]) {
+        monthlyMap[monthStr] = { month: monthStr, count: 0, total: 0 };
       }
+      monthlyMap[monthStr].count += 1;
+      monthlyMap[monthStr].total += (o.total_amount || 0);
     });
 
     const monthlyPurchases = Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    // Category distribution
+    // Category distribution (current inventory, not date-filtered)
     const catMap = {};
     products.forEach(p => {
       const cat = p.item_category || 'Other';
@@ -54,7 +61,7 @@ router.get('/stats', authenticate, async (req, res) => {
 
     const categoryDistribution = Object.values(catMap).sort((a, b) => b.count - a.count);
 
-    // Monthly expenses (last 6 months)
+    // Monthly expenses (same as monthly purchases within range)
     const monthlyExpenses = monthlyPurchases.map(p => ({
       month: p.month,
       total: p.total
@@ -70,7 +77,7 @@ router.get('/stats', authenticate, async (req, res) => {
       userMap[doc.id] = { username: data.username, full_name: data.full_name };
     });
 
-    const recentActivity = activitySnap.docs.map(doc => {
+    let recentActivity = activitySnap.docs.map(doc => {
       const data = doc.data();
       const user = userMap[data.user_id] || { username: 'system', full_name: 'System' };
       return {
@@ -80,6 +87,16 @@ router.get('/stats', authenticate, async (req, res) => {
         full_name: user.full_name
       };
     });
+
+    // Filter activity by date range if provided
+    if (fromDate || toDate) {
+      recentActivity = recentActivity.filter(a => {
+        const actDate = new Date(a.created_at || 0);
+        if (fromDate && actDate < fromDate) return false;
+        if (toDate && actDate > toDate) return false;
+        return true;
+      });
+    }
 
     // Sort activity by created_at DESC and limit to 20
     recentActivity.sort((a, b) => {
@@ -126,3 +143,4 @@ router.get('/stats', authenticate, async (req, res) => {
 });
 
 module.exports = router;
+
